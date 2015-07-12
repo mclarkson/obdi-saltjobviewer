@@ -30,7 +30,7 @@ quit()
 write_pid_or_exit()
 # ---------------------------------------------------------------------------
 {
-  local me=`basename $ME`
+  local me="job_notify.sh"
   if test -e $PIDFILE; then
     pid=`cat $PIDFILE`
     # Stale pid?
