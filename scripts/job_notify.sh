@@ -34,7 +34,7 @@ write_pid_or_exit()
   if test -e $PIDFILE; then
     pid=`cat $PIDFILE`
     # Stale pid?
-    if ps ax | grep -qs "^$pid.*$me"; then
+    if ps ax | grep -qs "$me"; then
       exit 0
     fi
   fi
@@ -49,7 +49,8 @@ write_pid_or_exit
 # ---------------------------------------------------------------------------
 
 throw () {
-  echo "$*" >&2
+  # Be quiet
+  # echo "$*" >&2
   exit 1
 }
 
@@ -216,7 +217,7 @@ import salt.runner
 
 if __name__ == '__main__':
     __opts__ = salt.config.master_config(
-            os.environ.get('SALT_MASTER_CONFIG', '/etc/salt/minion'))
+            os.environ.get('SALT_MASTER_CONFIG', '/etc/salt/master'))
     runner = salt.runner.Runner(__opts__)
 
     stdout_bak = sys.stdout
@@ -318,6 +319,8 @@ STATUS_NO_OUTPUT=3
 declare -i keep_jobs
 keep_jobs=`salt-call --output=newline_values_only config.get keep_jobs 2>/dev/null`
 
+[[ $keep_jobs -eq 0 ]] && keep_jobs=24
+
 send_status() {
     local status=$1
 
@@ -335,44 +338,47 @@ send_status() {
     guid=`curl $opts -d '{"Login":"'"$STATUS_USER"'","Password":"'"$STATUS_PASS"'"}' \
         $proto://$ipport/api/login | grep -o "[a-z0-9][^\"]*"`
     curl $opts -d '{"JobId":"'"$JOBID"'","Status":'"$status"',"KeepJobs":'"$keep_jobs"'}' \
-        $proto://$ipport/api/jobstatus/$guid/saltjobviewer/saltjobstatus
+        $proto://$ipport/api/$STATUS_USER/$guid/saltjobviewer/saltjobstatus
     echo
 }
 
-#echo "/var/cache/salt/master/jobs/6d/af04e79a4419d80b6ceef81237df5e" | \
-dir="/var/cache/salt/master/jobs"
-numslashes_base=`echo -n "$dir" | sed 's#/$##' | sed 's#[^/]##g' | wc -c`
-inotifywait -q -e isdir --format '%w%f' -m -r $dir/* | \
+salt-run state.event pretty=False | \
 while read line; do
-    # Only look for jid file 2 levels down from the base dir
-    numslashes=`echo -n "$line" | sed 's#/$##' | sed 's#[^/]##g' | wc -c`
-    level=$((numslashes-numslashes_base))
-    [[ $level -eq 2 ]] && {
-        for dummy in 1 2 3 4 5; do
-            [[ -e "$line/jid" ]] && {
-                JOBID=`cat "$line/jid"`
-                json=`job_header_check | decode_json`
-                if echo $json | grep -qs '\["Function"\].*"state.highstate"'; then
-                    json=`job_check | decode_json`
-                    if [[ $NOOUTPUT -eq 1 ]]; then
-                        send_status $STATUS_NO_OUTPUT
-                    else
-                        # It's a highstate
-                        #nsuccess=`echo "$json" | \
-                        #    grep -E -c '\["Result",.*,"result"\]\s*true'`
-                        nfail=`echo "$json" | \
-                            grep -E -c '\["Result",.*,"result"\]\s*false'`
-                        if [[ $nfail -ge 1 ]]; then
-                            send_status $STATUS_ERRORS_FOUND
-                        else
-                            send_status $STATUS_OK
-                        fi
-                    fi
-                fi
-                break
-            }
-            sleep 2
-        done
-    }
-done
 
+    col1=`echo "$line" | cut -d " " -f 1`
+
+    # Only process returns for salt jobs
+    [[ $col1 == "salt/run"* ]] && continue
+    [[ $col1 != *"/job/"* ]] && continue
+
+    data=`echo "$line" | sed -n 's/.*\({.*}\)/\1/p' | decode_json`
+    JOBID=`echo "$line" | sed -rn 's/.*([0-9]{20}).*/\1/p'`
+
+    #echo "JOBID=$JOBID"
+    #echo "------------------------- DATA ---------------------"
+    #echo "$data"
+    #echo "------------------------- LINE ---------------------"
+    #echo "$line"
+    #echo "------------------------- END ---------------------"
+
+    if echo "$data" | grep -qs '\["fun"\].*"state.highstate"'; then
+        # It's a highstate
+        echo "FOUND HIGHSTATE"
+
+        json=`job_check | decode_json`
+        if [[ $NOOUTPUT -eq 1 ]]; then
+            send_status $STATUS_NO_OUTPUT
+        else
+            #nsuccess=`echo "$json" | \
+            #    grep -E -c '\["Result",.*,"result"\]\s*true'`
+            nfail=`echo "$json" | \
+                grep -E -c '\["Result",.*,"result"\]\s*false'`
+            if [[ $nfail -ge 1 ]]; then
+                send_status $STATUS_ERRORS_FOUND
+            else
+                send_status $STATUS_OK
+            fi
+        fi
+    fi
+
+done
