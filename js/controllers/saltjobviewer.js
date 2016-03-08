@@ -18,7 +18,7 @@
 // AngularJS Controller
 // ------------------------------------------------------------------------
 
-mgrApp.controller("saltjobviewerCtrl", function ($scope,$http,$modal,$log,
+mgrApp.controller("saltjobviewerCtrl", function ($scope,$http,$uibModal,$log,
   $timeout,baseUrl,$rootScope) {
 
   $scope.environments = [];
@@ -716,7 +716,7 @@ mgrApp.controller("saltjobviewerCtrl", function ($scope,$http,$modal,$log,
 
     $scope.servername = servername;
 
-    var modalInstance = $modal.open({
+    var modalInstance = $uibModal.open({
       templateUrl: 'myModalContent.html',
       controller: $scope.ModalInstanceCtrl,
       size: 'sm',
@@ -737,18 +737,18 @@ mgrApp.controller("saltjobviewerCtrl", function ($scope,$http,$modal,$log,
   };
 
   // --------------------------------------------------------------------
-  $scope.ModalInstanceCtrl = function ($scope, $modalInstance, servername) {
+  $scope.ModalInstanceCtrl = function ($scope, $uibModalInstance, servername) {
   // --------------------------------------------------------------------
 
     // So the template can access 'servername' in this new scope
     $scope.servername = servername;
 
     $scope.ok = function () {
-      $modalInstance.close();
+      $uibModalInstance.close();
     };
 
     $scope.cancel = function () {
-      $modalInstance.dismiss('cancel');
+      $uibModalInstance.dismiss('cancel');
     };
   };
 
