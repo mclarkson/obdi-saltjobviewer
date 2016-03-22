@@ -35,14 +35,14 @@ import (
 // ***************************************************************************
 
 type JobStatus struct {
-	Id        int64
-	JobId     string
+	Id    int64
+	JobId string
 
-  // Status
-  // 0 - Unknown
-  // 1 - Success
-  // 2 - Fail
-  // 3 - No output
+	// Status
+	// 0 - Unknown
+	// 1 - Success
+	// 2 - Fail
+	// 3 - No output
 	Status    int64
 	CreatedAt time.Time
 }
@@ -257,9 +257,9 @@ type Args struct {
 }
 
 type PostedData struct {
-	JobId       string
-	Status      int64
-  KeepJobs    int64
+	JobId    string
+	Status   int64
+	KeepJobs int64
 }
 
 type Plugin struct{}
@@ -320,16 +320,16 @@ func (t *Plugin) GetRequest(args *Args, response *[]byte) error {
 	db := gormInst.DB() // shortcut
 
 	jobs := []JobStatus{}
-  // No results is not an error
-  Lock()
-  dberr := db.Order("id desc").Find(&jobs)
-  Unlock()
-  if dberr.Error != nil {
-    if !dberr.RecordNotFound() {
-      ReturnError(dberr.Error.Error(), response)
-      return nil
-    }
-  }
+	// No results is not an error
+	Lock()
+	dberr := db.Order("id desc").Find(&jobs)
+	Unlock()
+	if dberr.Error != nil {
+		if !dberr.RecordNotFound() {
+			ReturnError(dberr.Error.Error(), response)
+			return nil
+		}
+	}
 
 	// Create a slice of maps from users struct
 	// to selectively copy database fields for display
@@ -345,16 +345,16 @@ func (t *Plugin) GetRequest(args *Args, response *[]byte) error {
 
 	// Send the added record back
 
-  jobstatus_tmp, err := json.Marshal(u)
+	jobstatus_tmp, err := json.Marshal(u)
 
-  if err != nil {
-    ReturnError("Marshal error: "+err.Error(), response)
-    return nil
-  }
+	if err != nil {
+		ReturnError("Marshal error: "+err.Error(), response)
+		return nil
+	}
 
-  jobstatus_string := string(jobstatus_tmp)
+	jobstatus_string := string(jobstatus_tmp)
 
-  // Put the record in the Reply
+	// Put the record in the Reply
 
 	reply := Reply{jobstatus_string, SUCCESS, ""}
 	jsondata, err := json.Marshal(reply)
@@ -407,8 +407,8 @@ func (t *Plugin) PostRequest(args *Args, response *[]byte) error {
 		return nil
 	}
 
-  // Salt JobIds are always 20 characters long
-  if len(postedData.JobId) != 20 {
+	// Salt JobIds are always 20 characters long
+	if len(postedData.JobId) != 20 {
 		ReturnError("Invalid JobId.", response)
 		return nil
 	}
@@ -417,46 +417,46 @@ func (t *Plugin) PostRequest(args *Args, response *[]byte) error {
 
 	// Add the JobId and Status
 
-  jobstatus := JobStatus{
-    JobId:     postedData.JobId,
-    Status:    postedData.Status,
-  }
-  Lock()
-  if err := db.Create(&jobstatus); err.Error != nil {
-    Unlock()
-    ReturnError(err.Error.Error(), response)
-    return nil
-  }
-  Unlock()
+	jobstatus := JobStatus{
+		JobId:  postedData.JobId,
+		Status: postedData.Status,
+	}
+	Lock()
+	if err := db.Create(&jobstatus); err.Error != nil {
+		Unlock()
+		ReturnError(err.Error.Error(), response)
+		return nil
+	}
+	Unlock()
 
-  // Delete any jobs older than keep_jobs/24 days
+	// Delete any jobs older than keep_jobs/24 days
 
-  keep_jobs := postedData.KeepJobs;
-  if keep_jobs > 0 {
-    // delete from job_status where created_at < date('now','-8 days');
-    days := (keep_jobs/24)+1
-    txt := fmt.Sprintf("created_at < date('now','-%d days')", days)
-    Lock()
-    if err := db.Where(txt).Delete(JobStatus{}); err.Error != nil {
-      Unlock()
-      ReturnError(err.Error.Error(), response)
-      return nil
-    }
-    Unlock()
-  }
+	keep_jobs := postedData.KeepJobs
+	if keep_jobs > 0 {
+		// delete from job_status where created_at < date('now','-8 days');
+		days := (keep_jobs / 24) + 1
+		txt := fmt.Sprintf("created_at < date('now','-%d days')", days)
+		Lock()
+		if err := db.Where(txt).Delete(JobStatus{}); err.Error != nil {
+			Unlock()
+			ReturnError(err.Error.Error(), response)
+			return nil
+		}
+		Unlock()
+	}
 
 	// Send the added record back
 
-  jobstatus_tmp, err := json.Marshal(jobstatus)
+	jobstatus_tmp, err := json.Marshal(jobstatus)
 
-  if err != nil {
-    ReturnError("Marshal error: "+err.Error(), response)
-    return nil
-  }
+	if err != nil {
+		ReturnError("Marshal error: "+err.Error(), response)
+		return nil
+	}
 
-  jobstatus_string := string(jobstatus_tmp)
+	jobstatus_string := string(jobstatus_tmp)
 
-  // Put the record in the Reply
+	// Put the record in the Reply
 
 	reply := Reply{jobstatus_string, SUCCESS, ""}
 	jsondata, err := json.Marshal(reply)

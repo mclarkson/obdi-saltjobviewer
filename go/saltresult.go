@@ -135,7 +135,7 @@ func GET(url, endpoint string) (r *http.Response, e error) {
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
 	client := &http.Client{Transport: tr}
-    // Not available in Go<1.3
+	// Not available in Go<1.3
 	//client.Timeout = 8 * 1e9
 
 	//fmt.Printf("\n%s/api/%s\n",url,endpoint)
@@ -187,7 +187,7 @@ func POST(jsondata []byte, url, endpoint string) (r *http.Response, e error) {
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 	}
 	client := &http.Client{Transport: tr}
-    // Not available in Go<1.3
+	// Not available in Go<1.3
 	//client.Timeout = 8 * 1e9
 
 	//fmt.Printf("\n%s/api/%s\n",url,endpoint)
@@ -352,7 +352,7 @@ func (t *Plugin) GetRequest(args *Args, response *[]byte) error {
 		return nil
 	}
 
-  salt_jid := args.QueryString["salt_jid"][0]
+	salt_jid := args.QueryString["salt_jid"][0]
 	env_id, _ := strconv.ParseInt(args.QueryString["env_id"][0], 10, 64)
 	env_id_str := args.QueryString["env_id"][0]
 
@@ -380,7 +380,7 @@ func (t *Plugin) GetRequest(args *Args, response *[]byte) error {
 		return nil
 	}
 
-  // unused. just used for testing rights
+	// unused. just used for testing rights
 	//env := envs[0].SysName
 
 	// Get the ScriptId from the scripts table for:
