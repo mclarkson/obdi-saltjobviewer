@@ -21,8 +21,6 @@ import (
 	"fmt"
 	"github.com/jinzhu/gorm"
 	_ "github.com/mattn/go-sqlite3"
-	"log"
-	"log/syslog"
 	"net"
 	"net/rpc"
 	"os"
@@ -57,21 +55,18 @@ type Config struct {
 	Port     int
 }
 
-// --------------------------------------------------------------------------
 func (c *Config) DBPath() string {
-	// --------------------------------------------------------------------------
+
 	return c.Dbname
 }
 
-// --------------------------------------------------------------------------
 func (c *Config) SetDBPath(path string) {
-	// --------------------------------------------------------------------------
+
 	c.Dbname = path
 }
 
-// --------------------------------------------------------------------------
 func NewConfig() {
-	// --------------------------------------------------------------------------
+
 	config = &Config{}
 }
 
@@ -81,9 +76,8 @@ type GormDB struct {
 	db gorm.DB
 }
 
-// --------------------------------------------------------------------------
 func (gormInst *GormDB) InitDB() error {
-	// --------------------------------------------------------------------------
+
 	var err error
 	dbname := config.DBPath()
 
@@ -106,57 +100,18 @@ func (gormInst *GormDB) InitDB() error {
 	return nil
 }
 
-// --------------------------------------------------------------------------
 func (gormInst *GormDB) DB() *gorm.DB {
-	// --------------------------------------------------------------------------
+
 	return &gormInst.db
 }
 
-// --------------------------------------------------------------------------
 func NewDB() (*GormDB, error) {
-	// --------------------------------------------------------------------------
+
 	gormInst := &GormDB{}
 	if err := gormInst.InitDB(); err != nil {
 		return gormInst, err
 	}
 	return gormInst, nil
-}
-
-// ***************************************************************************
-// ERRORS
-// ***************************************************************************
-
-const (
-	SUCCESS = 0
-	ERROR   = 1
-)
-
-type ApiError struct {
-	details string
-}
-
-// --------------------------------------------------------------------------
-func (e ApiError) Error() string {
-	// --------------------------------------------------------------------------
-	return fmt.Sprintf("%s", e.details)
-}
-
-// ***************************************************************************
-// LOGGING
-// ***************************************************************************
-
-// --------------------------------------------------------------------------
-func logit(msg string) {
-	// --------------------------------------------------------------------------
-	// Log to syslog
-	log.Println(msg)
-	l, err := syslog.New(syslog.LOG_ERR, "obdi")
-	defer l.Close()
-	if err != nil {
-		log.Fatal("error writing syslog!")
-	}
-
-	l.Err(msg)
 }
 
 // ***************************************************************************
@@ -248,55 +203,23 @@ func (p *PortLock) Unlock() {
 // GO RPC PLUGIN
 // ***************************************************************************
 
-// Args are send over RPC from the Manager
-type Args struct {
-	PathParams  map[string]string
-	QueryString map[string][]string
-	PostData    []byte
-	QueryType   string
-}
-
 type PostedData struct {
 	JobId    string
 	Status   int64
 	KeepJobs int64
 }
 
-type Plugin struct{}
-
-// The reply will be sent and output by the master
-type Reply struct {
-	// Add more if required
-	JobStatus string
-	// Must have the following
-	PluginReturn int64 // 0 - success, 1 - error
-	PluginError  string
-}
-
-// --------------------------------------------------------------------------
 func Unlock() {
-	// --------------------------------------------------------------------------
+
 	config.Portlock.Unlock()
 }
 
-// --------------------------------------------------------------------------
 func Lock() {
-	// --------------------------------------------------------------------------
+
 	config.Portlock.Lock()
 }
 
-// --------------------------------------------------------------------------
-func ReturnError(text string, response *[]byte) {
-	// --------------------------------------------------------------------------
-	errtext := Reply{"", ERROR, text}
-	logit(text)
-	jsondata, _ := json.Marshal(errtext)
-	*response = jsondata
-}
-
-// --------------------------------------------------------------------------
 func (t *Plugin) GetRequest(args *Args, response *[]byte) error {
-	// --------------------------------------------------------------------------
 
 	var err error
 
@@ -356,7 +279,7 @@ func (t *Plugin) GetRequest(args *Args, response *[]byte) error {
 
 	// Put the record in the Reply
 
-	reply := Reply{jobstatus_string, SUCCESS, ""}
+	reply := Reply{0, jobstatus_string, SUCCESS, ""}
 	jsondata, err := json.Marshal(reply)
 
 	if err != nil {
@@ -369,9 +292,7 @@ func (t *Plugin) GetRequest(args *Args, response *[]byte) error {
 	return nil
 }
 
-// --------------------------------------------------------------------------
 func (t *Plugin) PostRequest(args *Args, response *[]byte) error {
-	// --------------------------------------------------------------------------
 
 	//ReturnError( "Internal error: Unimplemented HTTP POST with data " +
 	//  fmt.Sprintf(": %s",args.PostData), response )
@@ -458,7 +379,7 @@ func (t *Plugin) PostRequest(args *Args, response *[]byte) error {
 
 	// Put the record in the Reply
 
-	reply := Reply{jobstatus_string, SUCCESS, ""}
+	reply := Reply{0, jobstatus_string, SUCCESS, ""}
 	jsondata, err := json.Marshal(reply)
 
 	if err != nil {
@@ -471,9 +392,8 @@ func (t *Plugin) PostRequest(args *Args, response *[]byte) error {
 	return nil
 }
 
-// --------------------------------------------------------------------------
 func (t *Plugin) HandleRequest(args *Args, response *[]byte) error {
-	// --------------------------------------------------------------------------
+
 	// All plugins must have this.
 
 	if len(args.QueryType) > 0 {
@@ -498,9 +418,7 @@ func (t *Plugin) HandleRequest(args *Args, response *[]byte) error {
 // ENTRY POINT
 // ***************************************************************************
 
-// --------------------------------------------------------------------------
 func main() {
-	// --------------------------------------------------------------------------
 
 	// Sets the global config var
 	NewConfig()
@@ -518,14 +436,12 @@ func main() {
 	plugin := new(Plugin)
 	rpc.Register(plugin)
 
-	//for {
 	if conn, err := listener.Accept(); err != nil {
 		txt := fmt.Sprintf("Accept error. ", err)
 		logit(txt)
 	} else {
 		rpc.ServeConn(conn)
 	}
-	//}
 }
 
 // vim:ts=2:sw=2:et

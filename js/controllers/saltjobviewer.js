@@ -469,7 +469,7 @@ mgrApp.controller("saltjobviewerCtrl", function ($scope,$http,$uibModal,$log,
     }).success( function(data, status, headers, config) {
 
       try {
-        $scope.jobstatuslist = $.parseJSON(data.JobStatus);
+        $scope.jobstatuslist = $.parseJSON(data.Text);
       } catch (e) {
         clearMessages();
         $scope.message = "Error: " + e;
